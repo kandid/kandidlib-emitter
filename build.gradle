@@ -1,0 +1,41 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+
+sourceCompatibility = 1.7
+version = '0.4.0'
+
+idea {
+    module {
+        downloadSources = true
+    }
+}
+
+eclipse {
+    classpath {
+		  defaultOutputDir = file('build/eclipse/classes')
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir 'src'
+		}
+	}
+	test {
+		java {
+			srcDir 'test'
+		}
+	}
+}
+
+dependencies {
+    compile group: 'asm', name: 'asm', version: '3.2'
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
