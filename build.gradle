@@ -5,7 +5,8 @@ apply plugin: 'maven'
 
 sourceCompatibility = 1.7
 version = '0.4.0'
-group = 'kandidlib'
+group = 'de.kandid'
+def theName = 'kandidlib-emitter'
 
 idea {
     module {downloadSources = true}
@@ -27,11 +28,14 @@ sourceSets {
 }
 
 dependencies {
-    compile group: 'asm', name: 'asm', version: '3.2'
+    compile group: 'org.ow2.asm', name: 'asm', version: '4.2'
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
+jar {baseName = theName}
+
 task sourcesJar(type: Jar, dependsOn: classes) {
+	baseName = theName
 	classifier = 'sources'
 	from sourceSets.main.allSource
 }
