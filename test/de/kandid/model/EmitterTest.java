@@ -81,7 +81,7 @@ public class EmitterTest extends TestCase {
       public void add(Integer a, Character b, int c, long d, double e);
    }
 
-   @Emitter.Listener
+   // @Emitter.Listener // Disable this for now since it gives a compile error (as it should!)
    public interface ReturnListener {
       public static class Class implements ReturnListener {
          public int increment() {
@@ -90,6 +90,11 @@ public class EmitterTest extends TestCase {
          public int _count;
       }
       public int increment();
+   }
+
+   public void testAnnotationProcessorUse() {
+   	Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
+   	assertEquals(Listener.class.getName() + "$Emitter", emitter.getClass().getName());
    }
 
    public void testCreation() {
@@ -160,6 +165,7 @@ public class EmitterTest extends TestCase {
             assertTrue(e.isFiring());
          }
       });
+      e.fire().increment();
       assertFalse(e.isFiring());
    }
 

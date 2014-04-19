@@ -61,14 +61,49 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 /**
- * Objects of this class act as an multiplier for messages to send.
+ * Emitter is a class used to spread method calls to all of its registered listeners.
+ * Emitters can be constructed via the {@link #makeEmitter(Class)} method receiving an interface
+ * that the returned {@code Emitter} implements. Calling one of those methods sends it to all
+ * registered listeners.<p/>
+ * Here is a short example: {@code
+ * public class EmitterDemo {
+ *
+	public class EmitterDemo {
+
+	   public interface Listener {
+	      public void bescheid(String text);
+	   }
+
+	   public static void main(String[] args) {
+	   	Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
+	   	emitter.add(new Listener() {
+				@Override
+				public void bescheid(String text) {
+					System.out.println("Hello from 1 with " + text);
+				}
+			});
+	   	emitter.add(new Listener() {
+				@Override
+				public void bescheid(String text) {
+					System.out.println("Hello from 2 with " + text);
+				}
+			});
+	   	emitter.fire().bescheid(" greetings from main");
+	   }
+	}
+ * }
+ * The drawback of this solution is, that it can't be used in Applets since they
+ * normally forbid the generation of classes at runtime. For that reason there is also
+ * an annotation processor that generates the class at compile time but requires to
+ * register the annotation processor {@link JavacPlugin}
+ *
  * @author dominik
  */
 public class Emitter<T> {
 
    /**
     * Use this annotation on an interface to generate code for an {@link Emitter}. In order to
-    * to mak eithos work you have to install the necessaray compiler extension.
+    * to make this work you have to install the necessaray compiler extension.
     * @version $Rev$
     */
    @Target(ElementType.TYPE)
@@ -79,7 +114,7 @@ public class Emitter<T> {
     * The processor to handle {@link Emitter.Listener} annotations.
     * @version $Rev$
     */
-   @SupportedSourceVersion(SourceVersion.RELEASE_6)
+   @SupportedSourceVersion(SourceVersion.RELEASE_7)
    @SupportedAnnotationTypes("de.kandid.model.Emitter.Listener")
    public static class JavacPlugin extends AbstractProcessor {
 
@@ -91,7 +126,6 @@ public class Emitter<T> {
                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Only interfaces can be used as listeners", te);
                break;
             }
-            System.out.println(te);
             try {
                String name = makeEmitterName(te);
                String packageName = name.substring(0, name.lastIndexOf('.'));
@@ -102,7 +136,7 @@ public class Emitter<T> {
                out.write("public class " + name.substring(name.lastIndexOf('.') + 1) + " extends " + superClass + " implements " + te.getQualifiedName() + " {\n");
                for (Element e : te.getEnclosedElements()) {
                   if (e.getKind() != ElementKind.METHOD)
-                     break;
+                     continue;
                   ExecutableElement ee = (ExecutableElement) e;
                   if (ee.getReturnType().getKind() != TypeKind.VOID) {
                      processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Listener methods must be void", ee);
@@ -111,14 +145,17 @@ public class Emitter<T> {
                   out.write("   public void " + ee.getSimpleName());
                   writeArgList(out, ee, true);
                   out.write(" {\n");
+                  out.write("      boolean isFiring = _isFiring;\n");
+                  out.write("      _isFiring = true;\n");
                   out.write("      for (int i = 0; i < _end; i += 2)\n");
                   out.write("         ((" + te.getQualifiedName() + ")_listeners[i])." + ee.getSimpleName());
                   writeArgList(out, ee, false);
-                  out.write(";\n   }\n");
+                  out.write(";\n");
+                  out.write("      _isFiring = isFiring;");
+                  out.write(" }\n");
                }
                out.write("}");
                out.close();
-               System.out.println(out.toString());
                Writer classWriter = processingEnv.getFiler().createSourceFile(name, te).openWriter();
                classWriter.write(out.toString());
                classWriter.close();
@@ -155,9 +192,7 @@ public class Emitter<T> {
 
    }
 
-
    private static class Loader extends ClassLoader {
-
       Loader() {
          super(Emitter.class.getClassLoader());
       }
@@ -173,22 +208,43 @@ public class Emitter<T> {
       _listeners = new Object[8];
    }
 
+   /**
+    * Although this method is only a convenience method that casts this {@code Emitter} to the
+    * implementing interface, it
+    * @return the Emitter casted to the implementing interface
+    */
    @SuppressWarnings("unchecked")
    public T fire() {
       return (T) this;
    }
 
+   /**
+    * Returns whether this {@code Emitter} is currently firing. This may be important to
+    * prevent unwanted recursion.
+    * @return {@code true} if this {@code Emitter} is already firing; {@code false} otherwise
+    */
    public final boolean isFiring() {
       return _isFiring;
    }
 
+   /**
+    * Adds a listener to this {@code Emitter} with the listener itself as the key. It is
+    * implemented by calling {@link #add(Object, Object)}.
+    * @param listener the listener of type {@code T} to add
+    */
    public synchronized void add(T listener) {
-   	add(null, listener);
+   	add(listener, listener);
    }
 
+   /**
+    * Registers a listener to this {@code Emitter} with the explicitly specified {@code key}.
+    * The listener is always added at the end of the list, so it gets called last when firing
+    * an event. Up to now the behaviour is undefined when registering several listeners with
+    * the same key.
+    * @param key  the identifying key of the listener
+    * @param listener  the listener to add
+    */
    public synchronized void add(Object key, T listener) {
-   	if (key == null)
-   		key = listener;
       if (_end + 2 >= _listeners.length) {
          Object[] newListeners = new Object[_listeners.length + _listeners.length / 2];
          System.arraycopy(_listeners, 0, newListeners, 0, _listeners.length);
@@ -199,6 +255,11 @@ public class Emitter<T> {
       _end += 2;
    }
 
+   /**
+    * Removes a listener from the list. The listener will be identified by the key that have
+    * been passed while adding.
+    * @param key the key of the listener to remove
+    */
    public synchronized void remove(Object key) {
       for (int i = 0; i < _end; i += 2) {
          if (_listeners[i + 1] == key) {
@@ -210,10 +271,18 @@ public class Emitter<T> {
       }
    }
 
+   /**
+    * Creates an emitter object for the given interface. All methods of the interface need to be
+    * of type {@code void}.
+    * @param interfaze the interface to create an {@code Emitter} for
+    * @return the {@code Emitter}
+    */
 	public synchronized static <T> Emitter<T> makeEmitter(Class<?> interfaze) {
       Class<? extends Emitter<?>> clazz = _classes.get(interfaze);
       if (clazz == null) {
-         clazz = makeClass(interfaze);
+      	clazz = checkPrecompiled(interfaze);
+      	if (clazz == null)
+      		clazz = makeClass(interfaze);
          _classes.put(interfaze, clazz);
       }
       try {
@@ -224,10 +293,26 @@ public class Emitter<T> {
    }
 
 	@SuppressWarnings("unchecked")
+	private static <T> Class<Emitter<T>> checkPrecompiled(Class<T> interfaze) {
+		try {
+			String name = interfaze.getName() + "$Emitter";
+			Class<Emitter<T>> clazz = (Class<Emitter<T>>) interfaze.getClassLoader().loadClass(name);
+			return clazz;
+		} catch (Exception unused) {
+			return null;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
 	private static <T> Emitter<T> newInstance(Class<?> clazz) throws Exception {
 		return (Emitter<T>) clazz.newInstance();
 	}
 
+	/**
+	 * Assembles a class that implements the given interface by generating the byte code.
+	 * @param interfaze the interface to implement
+	 * @return the class
+	 */
    private static Class<? extends Emitter<?>> makeClass(Class<?> interfaze) {
       String nameClass = _nameEmitter + '$' + interfaze.getName().replace('.', '$');
       String nameInterface = Type.getInternalName(interfaze);
