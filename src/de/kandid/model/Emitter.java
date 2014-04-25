@@ -1,17 +1,17 @@
 /*
- * (C) Copyright 2009-2014, by Dominikus Diesch.
+ * (C) Copyright 2005-2014, by Dominikus Diesch.
  *
- * This library is free software; you can redistribute it and/or modify it under the terms
- * of the GNU Lesser General Public License as published by the Free Software Foundation;
- * either version 3 of the License, or (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU Lesser General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Lesser General Public License along with this
- * library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
- * Boston, MA 02111-1307, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package de.kandid.model;
@@ -62,40 +62,61 @@ import org.objectweb.asm.Type;
 
 /**
  * Emitter is a class used to spread method calls to all of its registered listeners.
+ * This concept is typically used in model/view patterns which are ubiquitos in the
+ * Java Swing library.<p/>
+ * Here is a short example: <pre>
+
+public class EmitterDemo {
+
+   // The interface all listeners must implement
+   public interface Listener {
+      public void bescheid(String text);
+   }
+
+   public static void main(String[] args) {
+      // Create the Emitter
+      Emitter&lt;Listener&gt; emitter = Emitter.makeEmitter(Listener.class);
+
+      // Add two listeners as dependents to the emitter
+      emitter.add(new Listener() {
+         &#64;Override
+         public void bescheid(String text) {
+            System.out.println("Hello from 1 with " + text);
+         }
+      });
+      emitter.add(new Listener() {
+         &#64;Override
+         public void bescheid(String text) {
+            System.out.println("Hello from 2 with " + text);
+         }
+      });
+
+      // Calls bescheid() for both listeners
+      emitter.fire().bescheid(" greetings from main");
+   }
+}
+ * </pre><p/>
  * Emitters can be constructed via the {@link #makeEmitter(Class)} method receiving an interface
  * that the returned {@code Emitter} implements. Calling one of those methods sends it to all
  * registered listeners.<p/>
- * Here is a short example: {@code
- * public class EmitterDemo {
  *
-	public class EmitterDemo {
-
-	   public interface Listener {
-	      public void bescheid(String text);
-	   }
-
-	   public static void main(String[] args) {
-	   	Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
-	   	emitter.add(new Listener() {
-				@Override
-				public void bescheid(String text) {
-					System.out.println("Hello from 1 with " + text);
-				}
-			});
-	   	emitter.add(new Listener() {
-				@Override
-				public void bescheid(String text) {
-					System.out.println("Hello from 2 with " + text);
-				}
-			});
-	   	emitter.fire().bescheid(" greetings from main");
-	   }
-	}
- * }
- * The drawback of this solution is, that it can't be used in Applets since they
- * normally forbid the generation of classes at runtime. For that reason there is also
- * an annotation processor that generates the class at compile time but requires to
- * register the annotation processor {@link JavacPlugin}
+ * There are two approaches to use Emitters:<ol>
+ *
+ * <li>Generate the Emitter code at runtime.<p/>
+ * The advantage is that you can use Emitters within IDEs without the need to configure an
+ * annotation processor or setup the source path to the generated sources. The drawback
+ * is, you can't use Emitters in Applets since they normally forbid the generation of classes
+ * at runtime</li>
+ *
+ * <li>Generate the Emitter code at compile time.<p/>
+ * For this to work you have to register the annotation processor {@link JavacPlugin} and annotate
+ * your listener interfaces with {@link Emitter.Listener}. Setting
+ * up this correctly rewards you with a compile time check for the listener interfaces to have
+ * only void methods.</li>
+ * </ol>
+ *
+ * Either way, {@link #makeEmitter(Class)} can be used in both cases, since it first checks for
+ * a precompiled class and then - if not found - generates one.
  *
  * @author dominik
  */
@@ -103,7 +124,7 @@ public class Emitter<T> {
 
    /**
     * Use this annotation on an interface to generate code for an {@link Emitter}. In order to
-    * to make this work you have to install the necessaray compiler extension.
+    * make this work you have to install the necessaray compiler plugin.
     * @version $Rev$
     */
    @Target(ElementType.TYPE)
@@ -111,7 +132,13 @@ public class Emitter<T> {
    }
 
    /**
-    * The processor to handle {@link Emitter.Listener} annotations.
+    * The processor to handle {@link Emitter.Listener} annotations. It generates an
+    * {@link Emitter} in the same package like the annotated listener interface resides.
+    * It will be named {@code <Listener>.Emitter}, with all dots replaced with {@code $}.<p/>
+    * <em>Note</em>: Despite its suggestive name this class is <em>not</em> an inner class!<p/>
+    * If you place the
+    * kandidlib-emitter jar in your classpath while compiling, it should work out of
+    * the box.
     * @version $Rev$
     */
    @SupportedSourceVersion(SourceVersion.RELEASE_7)
@@ -210,7 +237,7 @@ public class Emitter<T> {
 
    /**
     * Although this method is only a convenience method that casts this {@code Emitter} to the
-    * implementing interface, it
+    * implementing interface, it expresses the idea behind Emitters: firing events to all listeners.
     * @return the Emitter casted to the implementing interface
     */
    @SuppressWarnings("unchecked")
