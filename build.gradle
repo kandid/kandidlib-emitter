@@ -24,10 +24,6 @@ version = '0.4.0'
 group = 'de.kandid'
 def theName = 'kandidlib-emitter'
 
-idea {
-	module {downloadSources = true}
-}
-
 eclipse {
 	classpath {defaultOutputDir = file('build/eclipse/classes')}
 	project {natures 'org.eclipse.jdt.groovy.core.groovyNature', 'org.springsource.ide.eclipse.gradle.core.nature'}
