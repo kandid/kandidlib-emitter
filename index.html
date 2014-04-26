@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Kandidlib-emitter by kandid</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Kandidlib-emitter</h1>
+        <p>A small Java library providing a typesafe model/listener pattern through class generation</p>
+
+        <p class="view"><a href="https://github.com/kandid/kandidlib-emitter">View the Project on GitHub <small>kandid/kandidlib-emitter</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/kandid/kandidlib-emitter/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/kandid/kandidlib-emitter/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/kandid/kandidlib-emitter">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="kandidlib-emitter" class="anchor" href="#kandidlib-emitter"><span class="octicon octicon-link"></span></a>kandidlib-emitter</h1>
+
+<p>A small Java library providing a type safe model/listener pattern through class generation</p>
+
+<h2>
+<a name="the-problem" class="anchor" href="#the-problem"><span class="octicon octicon-link"></span></a>The problem</h2>
+
+<p>Need to implement a model interface in Java/Swing because none of the dafault classes fit? Tired to implement all those methods to register listeners and loops to send the messages to all listeners?</p>
+
+<p>If so, kandidlib-emitter can help you. This small library generates classes performing these tasks. At your preference will be either generated at compile time via an annotation processor or at runtime with a little help from the <a href="http://asm.ow2.org/">asm</a> or both.</p>
+
+<h2>
+<a name="the-solution" class="anchor" href="#the-solution"><span class="octicon octicon-link"></span></a>The solution</h2>
+
+<p>kandidlib-emitter allows you to take any interface containing only void methods and use it to generate a class where you can register listeners implementing this interface and spread events to them by calling this method. No casting needed.</p>
+
+<p>An example shows the principle:</p>
+
+<div class="highlight highlight-java"><pre><span class="kd">public</span> <span class="kd">class</span> <span class="nc">EmitterDemo</span> <span class="o">{</span>
+
+   <span class="c1">// The interface all listeners must implement</span>
+   <span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Listener</span> <span class="o">{</span>
+      <span class="kd">public</span> <span class="kt">void</span> <span class="nf">bescheid</span><span class="o">(</span><span class="n">String</span> <span class="n">text</span><span class="o">);</span>
+   <span class="o">}</span>
+
+   <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+      <span class="c1">// Create the Emitter</span>
+      <span class="n">Emitter</span><span class="o">&lt;</span><span class="n">Listener</span><span class="o">&gt;</span> <span class="n">emitter</span> <span class="o">=</span> <span class="n">Emitter</span><span class="o">.</span><span class="na">makeEmitter</span><span class="o">(</span><span class="n">Listener</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+
+      <span class="c1">// Add a listener as dependent to the emitter</span>
+      <span class="n">emitter</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="n">Listener</span><span class="o">()</span> <span class="o">{</span>
+         <span class="nd">@Override</span>
+         <span class="kd">public</span> <span class="kt">void</span> <span class="nf">bescheid</span><span class="o">(</span><span class="n">String</span> <span class="n">text</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"Hello from the listener with "</span> <span class="o">+</span> <span class="n">text</span><span class="o">);</span>
+         <span class="o">}</span>
+      <span class="o">});</span>
+
+      <span class="c1">// Calls bescheid() for all listeners</span>
+      <span class="n">emitter</span><span class="o">.</span><span class="na">fire</span><span class="o">().</span><span class="na">bescheid</span><span class="o">(</span><span class="s">"greetings from main"</span><span class="o">);</span>
+   <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="how-to-use-it" class="anchor" href="#how-to-use-it"><span class="octicon octicon-link"></span></a>How to use it</h2>
+
+<p>As mentioned before kandidlib-emitter may be used in two ways, either as an annotation processor in order to generate the necessary classes at compile time or do dynamic generation at runtime.</p>
+
+<p>In both cases you can use the <code>makeEmitter(Class i)</code> method to instantiate an Emitter. </p>
+
+<h3>
+<a name="using-runtime-generation" class="anchor" href="#using-runtime-generation"><span class="octicon octicon-link"></span></a>Using runtime generation</h3>
+
+<ul>
+<li>add kandidlib-emitter to your classpath</li>
+<li>add asm-4.2 to your classpath</li>
+<li>instantiate an Emitter with Emitter.makeEmitter(Listener.class)
+This approach is simpler to set up but you must take care if you plan to use an Emitter in an Applet since under normal circumstances this environment prohibits code generation at runtime. Another drawback might be the missing </li>
+</ul><h3>
+<a name="using-as-an-annotation-processor" class="anchor" href="#using-as-an-annotation-processor"><span class="octicon octicon-link"></span></a>Using as an annotation processor</h3>
+
+<ul>
+<li>build the annotation processor jar (see below)</li>
+<li>register the jar as an annotation processor</li>
+<li>mark your interfaces with <code>@de.kandid.model.Emitter.Listener</code>
+</li>
+<li>instantiate them with either Emitter.makeEmitter(Listener.class)
+-or-</li>
+<li>use the generated class directly</li>
+</ul><p>Following this approach requires you to build the kandidlib-emitter.jar and register it as an annotation processor. Usually it should be enough to simply add the jar to the classpath of your compile step.</p>
+
+<p>Doing so enables you to mark interfaces with the annotation  and the processor generates the Emitter class. The resulting class resides in the same package as the interface and has the same name appended with $Emitter. If the implemented interface is a nested one, the dots are replaced with '§'. Taking the previous example the generated emitter would be named EmitterDemo$Listener$Emitter.</p>
+
+<h2>
+<a name="building-the-kandidlib-emitterjar" class="anchor" href="#building-the-kandidlib-emitterjar"><span class="octicon octicon-link"></span></a>Building the kandidlib-emitter.jar</h2>
+
+<p>This library uses the <a href="http://gradle.org">Gradle</a>-1.10 build system. Since I refuse to add the wrapper to the source code, you need to have it installed. Then</p>
+
+<div class="highlight highlight-sh"><pre>gradle jar
+</pre></div>
+
+<p>produces the jar containing a manifest which identifies it as an annotation processor. This jar is also the one that must be included in distributions of your application since it also contains the runtime classes.</p>
+
+<h2>
+<a name="improving-kandidlib-emitter" class="anchor" href="#improving-kandidlib-emitter"><span class="octicon octicon-link"></span></a>Improving kandidlib-emitter</h2>
+
+<p>Of course any IDE may be used to work on kandidlib-emitter but support for gradle makes it more convenient.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/kandid">kandid</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
