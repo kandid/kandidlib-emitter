@@ -21,7 +21,7 @@ apply plugin: 'maven'
 apply plugin: 'signing'
 
 sourceCompatibility = 1.7
-version = '0.4.0'
+version = '0.4.1'
 group = 'de.kandid'
 def theName = 'kandidlib-emitter'
 
