@@ -18,14 +18,15 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'maven'
+apply plugin: 'signing'
 
 sourceCompatibility = 1.7
-version = '0.4.0'
+version = '0.4.1'
 group = 'de.kandid'
 def theName = 'kandidlib-emitter'
 
 eclipse {
-	classpath {defaultOutputDir = file('build/eclipse/classes')}
+	classpath {defaultOutputDir = new File(buildDir, 'eclipse/classes')}
 	project {natures 'org.eclipse.jdt.groovy.core.groovyNature', 'org.springsource.ide.eclipse.gradle.core.nature'}
 }
 
@@ -53,7 +54,41 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 	from sourceSets.main.allSource
 }
 
+task javadocJar(type: Jar, dependsOn: javadoc) {
+	baseName = theName
+	classifier = 'javadoc'
+	from 'build/docs/javadoc'
+}
+
+signing {sign configurations.archives}
+
+uploadArchives {	repositories { mavenDeployer {
+	beforeDeployment {deployment -> signing.signPom(deployment)}
+	repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+		authentication(userName: sonatypeUsername, password: sonatypePassword)
+	}
+	pom.project {
+		name theName
+		packaging 'jar'
+		description 'Type safe model/listener pattern through class generation'
+		url 'https://github.com/kandid/kandidlib-emitter'
+		scm {
+			def gitUrl = 'scm:git@github.com:kandid/kandidlib-emitter.git'
+			url gitUrl; connection gitUrl; developerConnection gitUrl;
+		}
+		licenses { license {
+				 name 'The Apache Software License, Version 2.0'
+				 url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+				 distribution 'repo'
+		}}
+		developers {
+			developer {id 'kandid'; name 'Dominik Diesch';}
+		}
+	}
+}}}
+
 artifacts {
 	archives jar
 	archives sourcesJar
+	archives javadocJar
 }
