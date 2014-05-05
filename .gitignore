@@ -1,5 +1,10 @@
-/.settings
-/.gradle
 /build
+/bin
+/.gradle
+/.idea
+/.settings
 /.classpath
 /.project
+/*.iml
+/*.ipr
+/*.iws

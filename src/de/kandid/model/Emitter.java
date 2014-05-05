@@ -125,7 +125,6 @@ public class Emitter<T> {
    /**
     * Use this annotation on an interface to generate code for an {@link Emitter}. In order to
     * make this work you have to install the necessaray compiler plugin.
-    * @version $Rev: 1659 $
     */
    @Target(ElementType.TYPE)
    public static @interface Listener {
@@ -139,7 +138,6 @@ public class Emitter<T> {
     * If you place the
     * kandidlib-emitter jar in your classpath while compiling, it should work out of
     * the box.
-    * @version $Rev: 1659 $
     */
    @SupportedSourceVersion(SourceVersion.RELEASE_7)
    @SupportedAnnotationTypes("de.kandid.model.Emitter.Listener")
