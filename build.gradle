@@ -24,6 +24,7 @@ sourceCompatibility = 1.7
 version = '0.4.1'
 group = 'de.kandid'
 def theName = 'kandidlib-emitter'
+def theDescription = 'Type safe model/listener pattern through class generation'
 
 repositories {
 	mavenLocal()
@@ -55,32 +56,37 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 	from 'build/docs/javadoc'
 }
 
-signing {sign configurations.archives}
+if (hasProperty('signing.keyId'))
+	signing {sign configurations.archives}
 
-uploadArchives {	repositories { mavenDeployer {
-	beforeDeployment {deployment -> signing.signPom(deployment)}
-	repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-		authentication(userName: sonatypeUsername, password: sonatypePassword)
-	}
-	pom.project {
-		name theName
-		packaging 'jar'
-		description 'Type safe model/listener pattern through class generation'
-		url 'https://github.com/kandid/kandidlib-emitter'
-		scm {
-			def gitUrl = 'scm:git@github.com:kandid/kandidlib-emitter.git'
-			url gitUrl; connection gitUrl; developerConnection gitUrl;
+if (hasProperty('sonatypeUsername'))
+	uploadArchives {	repositories { mavenDeployer {
+		if (!hasProperty('sonatypeUsername'))
+			return
+		beforeDeployment {deployment -> signing.signPom(deployment)}
+		repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+			authentication(userName: sonatypeUsername, password: sonatypePassword)
 		}
-		licenses { license {
-				 name 'The Apache Software License, Version 2.0'
-				 url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-				 distribution 'repo'
-		}}
-		developers {
-			developer {id 'kandid'; name 'Dominik Diesch';}
+		pom.project {
+			name theName
+			packaging 'jar'
+			description theDescription
+			url 'https://github.com/kandid/' + theName
+			scm {
+				def gitUrl = 'scm:git@github.com:kandid/' + theName
+				url gitUrl; connection gitUrl; developerConnection gitUrl;
+			}
+			licenses { license {
+					 name 'The Apache Software License, Version 2.0'
+					 url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+					 distribution 'repo'
+			}}
+			developers {
+				developer {id 'kandid'; name 'Dominikus Diesch';}
+			}
 		}
-	}
-}}}
+	}}}
+
 
 artifacts {
 	archives jar
