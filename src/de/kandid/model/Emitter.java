@@ -16,25 +16,11 @@
 
 package de.kandid.model;
 
-import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
-import static org.objectweb.asm.Opcodes.ACC_SUPER;
-import static org.objectweb.asm.Opcodes.ACC_SYNCHRONIZED;
-import static org.objectweb.asm.Opcodes.ALOAD;
-import static org.objectweb.asm.Opcodes.CHECKCAST;
-import static org.objectweb.asm.Opcodes.GETFIELD;
-import static org.objectweb.asm.Opcodes.GOTO;
-import static org.objectweb.asm.Opcodes.ILOAD;
-import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
-import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
-import static org.objectweb.asm.Opcodes.RETURN;
-import static org.objectweb.asm.Opcodes.V1_4;
-
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -53,12 +39,6 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
-
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 /**
  * Emitter is a class used to spread method calls to all of its registered listeners.
@@ -156,28 +136,13 @@ public class Emitter<T> {
                String packageName = name.substring(0, name.lastIndexOf('.'));
                Writer out = new StringWriter();
                out.write("package " + packageName + ";\n");
-               List<? extends TypeMirror> interfaces = te.getInterfaces();
-               String superClass = interfaces.size() == 0 ? "de.kandid.model.Emitter" : makeEmitterName((TypeElement) processingEnv.getTypeUtils().asElement(interfaces.get(0)));
+               String superClass = "de.kandid.model.Emitter<" + te.getQualifiedName() + ">";
                out.write("public class " + name.substring(name.lastIndexOf('.') + 1) + " extends " + superClass + " implements " + te.getQualifiedName() + " {\n");
-               for (Element e : te.getEnclosedElements()) {
-                  if (e.getKind() != ElementKind.METHOD)
-                     continue;
-                  ExecutableElement ee = (ExecutableElement) e;
-                  if (ee.getReturnType().getKind() != TypeKind.VOID) {
-                     processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Listener methods must be void", ee);
-                     break;
-                  }
-                  out.write("   public void " + ee.getSimpleName());
-                  writeArgList(out, ee, true);
-                  out.write(" {\n");
-                  out.write("      boolean isFiring = _isFiring;\n");
-                  out.write("      _isFiring = true;\n");
-                  out.write("      for (int i = 0; i < _end; i += 2)\n");
-                  out.write("         ((" + te.getQualifiedName() + ")_listeners[i])." + ee.getSimpleName());
-                  writeArgList(out, ee, false);
-                  out.write(";\n");
-                  out.write("      _isFiring = isFiring;");
-                  out.write(" }\n");
+               makeMethods(te, out);
+               List<? extends TypeMirror> interfaces = te.getInterfaces();
+               for (TypeMirror tm : interfaces) {
+               	TypeElement ite = (TypeElement) processingEnv.getTypeUtils().asElement(tm);
+               	makeMethods(ite, out);
                }
                out.write("}");
                out.close();
@@ -190,6 +155,29 @@ public class Emitter<T> {
          }
          return false;
       }
+
+		private void makeMethods(TypeElement te, Writer out) throws IOException {
+			for (Element e : te.getEnclosedElements()) {
+			   if (e.getKind() != ElementKind.METHOD)
+			      continue;
+			   ExecutableElement ee = (ExecutableElement) e;
+			   if (ee.getReturnType().getKind() != TypeKind.VOID) {
+			      processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Listener methods must be void", ee);
+			      break;
+			   }
+			   out.write("   public void " + ee.getSimpleName());
+			   writeArgList(out, ee, true);
+			   out.write(" {\n");
+			   out.write("      boolean isFiring = _isFiring;\n");
+			   out.write("      _isFiring = true;\n");
+			   out.write("      for (int i = 0; i < _end; i += 2)\n");
+			   out.write("         ((" + te.getQualifiedName() + ")_listeners[i])." + ee.getSimpleName());
+			   writeArgList(out, ee, false);
+			   out.write(";\n");
+			   out.write("      _isFiring = isFiring;\n");
+			   out.write("   }\n");
+			}
+		}
 
       private static void writeArgList(Writer out, ExecutableElement ee, boolean withTypes) throws IOException {
          boolean needComma = false;
@@ -215,18 +203,6 @@ public class Emitter<T> {
          return ((PackageElement) pakkage).getQualifiedName() + "." + className + "$Emitter";
       }
 
-   }
-
-   private static class Loader extends ClassLoader {
-      Loader() {
-         super(Emitter.class.getClassLoader());
-      }
-
-      @SuppressWarnings("unchecked")
-		public Class<? extends Emitter<?>> loadClass(ClassWriter cw, String name) {
-         byte[] bytes = cw.toByteArray();
-         return (Class<? extends Emitter<?>>) defineClass(name, bytes, 0, bytes.length);
-      }
    }
 
    protected Emitter() {
@@ -307,7 +283,7 @@ public class Emitter<T> {
       if (clazz == null) {
       	clazz = checkPrecompiled(interfaze);
       	if (clazz == null)
-      		clazz = makeClass(interfaze);
+      		throw new IllegalArgumentException("No emitter class found for: " + interfaze.getName());
          _classes.put(interfaze, clazz);
       }
       try {
@@ -333,118 +309,6 @@ public class Emitter<T> {
 		return (Emitter<T>) clazz.newInstance();
 	}
 
-	/**
-	 * Assembles a class that implements the given interface by generating the byte code.
-	 * @param interfaze the interface to implement
-	 * @return the class
-	 */
-   private static Class<? extends Emitter<?>> makeClass(Class<?> interfaze) {
-      String nameClass = _nameEmitter + '$' + interfaze.getName().replace('.', '$');
-      String nameInterface = Type.getInternalName(interfaze);
-      // ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-      ClassWriter cw = new ClassWriter(0);
-      cw.visit(V1_4, ACC_PUBLIC + ACC_SUPER, nameClass, null, _nameEmitter, new String[]{name(interfaze)});
-
-      // Generate default construcotor
-      MethodVisitor cv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
-      cv.visitVarInsn(ALOAD, 0);
-      cv.visitMethodInsn(INVOKESPECIAL, _nameEmitter, "<init>", "()V");
-      cv.visitInsn(RETURN);
-      cv.visitMaxs(1, 1);
-
-      // Generate methods
-      Method[] methods = interfaze.getMethods();
-      for (int i = 0; i < methods.length; ++i) {
-         final Method m = methods[i];
-         if (m.getReturnType() != void.class)
-            throw new IllegalArgumentException("Method " + m.toGenericString() + " must not return a value");
-         final String descMethod = Type.getMethodDescriptor(m);
-         final MethodVisitor mw = cw.visitMethod(ACC_PUBLIC + ACC_SYNCHRONIZED, m.getName(), descMethod, null, null);
-         final Type[] argTypes = Type.getArgumentTypes(m);
-
-         // for (int i = 0; i < _end; i += 2)
-         //    ((Listener) _listeners[i]).send(...);
-
-         int localStart = 1; // give one for "this"
-         for (Type at : argTypes)
-         	localStart += at.getSize();
-         Label entry = new Label();
-         Label exit = new Label();
-         mw.visitLabel(entry);
-
-         // _isFiring = true;
-         mw.visitVarInsn(ALOAD, 0);
-         mw.visitInsn(Opcodes.ICONST_1);
-         mw.visitFieldInsn(Opcodes.PUTFIELD, nameClass, "_isFiring", Type.BOOLEAN_TYPE.getDescriptor());
-
-         // setup local variables: i, _listeners, _end
-         mw.visitLocalVariable("i", Type.INT_TYPE.getDescriptor(), null, entry, exit, localStart);
-         mw.visitInsn(Opcodes.ICONST_0);
-         mw.visitIntInsn(Opcodes.ISTORE, localStart);
-
-         mw.visitLocalVariable("listeners", _descObjectArray, null, entry, exit, localStart + 1);
-         mw.visitVarInsn(ALOAD, 0);
-         mw.visitFieldInsn(GETFIELD, nameClass, "_listeners", _descObjectArray);
-         mw.visitIntInsn(Opcodes.ASTORE, localStart + 1);
-
-         mw.visitLocalVariable("end", Type.INT_TYPE.getDescriptor(), null, entry, exit, localStart + 2);
-         mw.visitVarInsn(ALOAD, 0);
-         mw.visitFieldInsn(GETFIELD, nameClass, "_end", Type.INT_TYPE.getDescriptor());
-         mw.visitIntInsn(Opcodes.ISTORE, localStart + 2);
-
-         final Label condition = new Label();
-         mw.visitJumpInsn(GOTO, condition);
-
-         final Label loop = new Label();
-         mw.visitLabel(loop);
-
-         //((Listener) _listeners[i]).doSomething()
-         mw.visitIntInsn(Opcodes.ALOAD, localStart + 1);
-         mw.visitIntInsn(Opcodes.ILOAD, localStart);
-         mw.visitInsn(Opcodes.AALOAD);
-         mw.visitTypeInsn(CHECKCAST, nameInterface);
-         int offs = 1; // give one for "this"
-         for (Type at : argTypes) {
-            mw.visitVarInsn(at.getOpcode(ILOAD), offs);
-         	offs += at.getSize();
-         }
-         mw.visitMethodInsn(INVOKEINTERFACE, nameInterface, m.getName(), descMethod);
-
-         // i += 2
-         mw.visitIincInsn(localStart, 2);
-
-         // if (i < end) goto loop
-         mw.visitLabel(condition);
-         mw.visitIntInsn(Opcodes.ILOAD, localStart);
-         mw.visitIntInsn(Opcodes.ILOAD, localStart + 2);
-         mw.visitJumpInsn(Opcodes.IF_ICMPLT, loop);
-
-         // _isFiring = false;
-         mw.visitVarInsn(ALOAD, 0);
-         mw.visitInsn(Opcodes.ICONST_0);
-         mw.visitFieldInsn(Opcodes.PUTFIELD, nameClass, "_isFiring", Type.BOOLEAN_TYPE.getDescriptor());
-
-         mw.visitLabel(exit);
-         mw.visitInsn(RETURN);
-         mw.visitMaxs(localStart + 2, localStart + 3);
-         mw.visitEnd();
-      }
-      cw.visitEnd();
-      return _loader.loadClass(cw, nameClass.replace('/', '.'));
-   }
-
-   private static String name(Class<?> clazz) {
-      return Type.getInternalName(clazz);
-   }
-
-   private static String desc(Class<?> clazz) {
-      return Type.getDescriptor(clazz);
-   }
-
-   private final static String _nameEmitter = name(Emitter.class);
-   private final static String _descObjectArray = desc(Object[].class);
-
-   private final static Loader _loader = new Loader();
    private final static HashMap<Class<?>, Class<? extends Emitter<?>>> _classes = new HashMap<Class<?>, Class<? extends Emitter<?>>>();
 
    protected Object[] _listeners;
