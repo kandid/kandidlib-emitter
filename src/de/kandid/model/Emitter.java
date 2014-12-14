@@ -119,7 +119,7 @@ public class Emitter<T> {
     * kandidlib-emitter jar in your classpath while compiling, it should work out of
     * the box.
     */
-   @SupportedSourceVersion(SourceVersion.RELEASE_7)
+   @SupportedSourceVersion(SourceVersion.RELEASE_8)
    @SupportedAnnotationTypes("de.kandid.model.Emitter.Listener")
    public static class JavacPlugin extends AbstractProcessor {
 
