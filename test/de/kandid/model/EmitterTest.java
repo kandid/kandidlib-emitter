@@ -28,7 +28,8 @@ public class EmitterTest extends TestCase {
    @Emitter.Listener
    public interface Listener {
       public static class Class implements Listener {
-         public void increment() {
+         @Override
+			public void increment() {
             ++_count;
          }
          public int _count;
@@ -40,7 +41,8 @@ public class EmitterTest extends TestCase {
    @Emitter.Listener
    public interface InheritedListener extends Listener {
       public static class Class extends Listener.Class implements InheritedListener {
-         public void incrementOther() {
+         @Override
+			public void incrementOther() {
             ++_otherCount;
          }
          public int _otherCount;
@@ -57,7 +59,8 @@ public class EmitterTest extends TestCase {
    @Emitter.Listener
    public interface ArgumentListener {
       public static class Class implements ArgumentListener {
-         public void add(Integer a, Character b, int c, long d, double e) {
+         @Override
+			public void add(Integer a, Character b, int c, long d, double e) {
             _a += a.intValue();
             _b = b.charValue();
             _c += c;
@@ -77,7 +80,8 @@ public class EmitterTest extends TestCase {
    // @Emitter.Listener // Disable this for now since it gives a compile error (as it should!)
    public interface ReturnListener {
       public static class Class implements ReturnListener {
-         public int increment() {
+         @Override
+			public int increment() {
             return ++_count;
          }
          public int _count;
@@ -160,6 +164,14 @@ public class EmitterTest extends TestCase {
       });
       e.fire().increment();
       assertFalse(e.isFiring());
+   }
+
+   @Emitter.Listener
+	public interface ListenerWithArgumentNamedI {
+		void test(int i);
+	}
+   public void testIArgument() {
+   	Emitter.makeEmitter(ListenerWithArgumentNamedI.class);
    }
 
    private static Listener.Class addListener(Emitter<Listener> emitter) {

@@ -187,7 +187,7 @@ public class Emitter<T> {
                out.write(",");
             if (withTypes)
                out.write(arg.asType().toString() + " ");
-            out.write(arg.getSimpleName().toString());
+            out.write(arg.getSimpleName().toString() + '_');
             needComma = true;
          }
          out.write(")");
