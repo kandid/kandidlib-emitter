@@ -102,196 +102,196 @@ public class EmitterDemo {
  */
 public class Emitter<T> {
 
-   /**
-    * Use this annotation on an interface to generate code for an {@link Emitter}. In order to
-    * make this work you have to install the necessaray compiler plugin.
-    */
-   @Target(ElementType.TYPE)
-   public static @interface Listener {
-   }
+	/**
+	 * Use this annotation on an interface to generate code for an {@link Emitter}. In order to
+	 * make this work you have to install the necessaray compiler plugin.
+	 */
+	@Target(ElementType.TYPE)
+	public static @interface Listener {
+	}
 
-   /**
-    * The processor to handle {@link Emitter.Listener} annotations. It generates an
-    * {@link Emitter} in the same package like the annotated listener interface resides.
-    * It will be named {@code <Listener>.Emitter}, with all dots replaced with {@code $}.<p/>
-    * <em>Note</em>: Despite its suggestive name this class is <em>not</em> an inner class!<p/>
-    * If you place the
-    * kandidlib-emitter jar in your classpath while compiling, it should work out of
-    * the box.
-    */
-   @SupportedSourceVersion(SourceVersion.RELEASE_8)
-   @SupportedAnnotationTypes("de.kandid.model.Emitter.Listener")
-   public static class JavacPlugin extends AbstractProcessor {
+	/**
+	 * The processor to handle {@link Emitter.Listener} annotations. It generates an
+	 * {@link Emitter} in the same package like the annotated listener interface resides.
+	 * It will be named {@code <Listener>.Emitter}, with all dots replaced with {@code $}.<p/>
+	 * <em>Note</em>: Despite its suggestive name this class is <em>not</em> an inner class!<p/>
+	 * If you place the
+	 * kandidlib-emitter jar in your classpath while compiling, it should work out of
+	 * the box.
+	 */
+	@SupportedSourceVersion(SourceVersion.RELEASE_8)
+	@SupportedAnnotationTypes("de.kandid.model.Emitter.Listener")
+	public static class JavacPlugin extends AbstractProcessor {
 
-      @SuppressWarnings("unchecked")
-      @Override
-      public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-         for (TypeElement te : (Set<TypeElement>) roundEnv.getElementsAnnotatedWith(Emitter.Listener.class)) {
-            if (te.getKind() != ElementKind.INTERFACE) {
-               processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Only interfaces can be used as listeners", te);
-               break;
-            }
-            try {
-               String name = makeEmitterName(te);
-               String packageName = name.substring(0, name.lastIndexOf('.'));
-               Writer out = new StringWriter();
-               out.write("package " + packageName + ";\n");
-               String superClass = "de.kandid.model.Emitter<" + te.getQualifiedName() + ">";
-               out.write("public class " + name.substring(name.lastIndexOf('.') + 1) + " extends " + superClass + " implements " + te.getQualifiedName() + " {\n");
-               makeMethods(te, out);
-               List<? extends TypeMirror> interfaces = te.getInterfaces();
-               for (TypeMirror tm : interfaces) {
-               	TypeElement ite = (TypeElement) processingEnv.getTypeUtils().asElement(tm);
-               	makeMethods(ite, out);
-               }
-               out.write("}");
-               out.close();
-               Writer classWriter = processingEnv.getFiler().createSourceFile(name, te).openWriter();
-               classWriter.write(out.toString());
-               classWriter.close();
-            } catch (Exception e) {
-               e.printStackTrace();
-            }
-         }
-         return false;
-      }
+		@SuppressWarnings("unchecked")
+		@Override
+		public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+			for (TypeElement te : (Set<TypeElement>) roundEnv.getElementsAnnotatedWith(Emitter.Listener.class)) {
+				if (te.getKind() != ElementKind.INTERFACE) {
+					processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Only interfaces can be used as listeners", te);
+					break;
+				}
+				try {
+					String name = makeEmitterName(te);
+					String packageName = name.substring(0, name.lastIndexOf('.'));
+					Writer out = new StringWriter();
+					out.write("package " + packageName + ";\n");
+					String superClass = "de.kandid.model.Emitter<" + te.getQualifiedName() + ">";
+					out.write("public class " + name.substring(name.lastIndexOf('.') + 1) + " extends " + superClass + " implements " + te.getQualifiedName() + " {\n");
+					makeMethods(te, out);
+					List<? extends TypeMirror> interfaces = te.getInterfaces();
+					for (TypeMirror tm : interfaces) {
+						TypeElement ite = (TypeElement) processingEnv.getTypeUtils().asElement(tm);
+						makeMethods(ite, out);
+					}
+					out.write("}");
+					out.close();
+					Writer classWriter = processingEnv.getFiler().createSourceFile(name, te).openWriter();
+					classWriter.write(out.toString());
+					classWriter.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			return false;
+		}
 
 		private void makeMethods(TypeElement te, Writer out) throws IOException {
 			for (Element e : te.getEnclosedElements()) {
-			   if (e.getKind() != ElementKind.METHOD)
-			      continue;
-			   ExecutableElement ee = (ExecutableElement) e;
-			   if (ee.getReturnType().getKind() != TypeKind.VOID) {
-			      processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Listener methods must be void", ee);
-			      break;
-			   }
-			   out.write("   public void " + ee.getSimpleName());
-			   writeArgList(out, ee, true);
-			   out.write(" {\n");
-			   out.write("      boolean isFiring = _isFiring;\n");
-			   out.write("      _isFiring = true;\n");
-			   out.write("      for (int i = 0; i < _end; i += 2)\n");
-			   out.write("         ((" + te.getQualifiedName() + ")_listeners[i])." + ee.getSimpleName());
-			   writeArgList(out, ee, false);
-			   out.write(";\n");
-			   out.write("      _isFiring = isFiring;\n");
-			   out.write("   }\n");
+				if (e.getKind() != ElementKind.METHOD)
+					continue;
+				ExecutableElement ee = (ExecutableElement) e;
+				if (ee.getReturnType().getKind() != TypeKind.VOID) {
+					processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "Listener methods must be void", ee);
+					break;
+				}
+				out.write("	public void " + ee.getSimpleName());
+				writeArgList(out, ee, true);
+				out.write(" {\n");
+				out.write("		boolean isFiring = _isFiring;\n");
+				out.write("		_isFiring = true;\n");
+				out.write("		for (int i = 0; i < _end; i += 2)\n");
+				out.write("			((" + te.getQualifiedName() + ")_listeners[i])." + ee.getSimpleName());
+				writeArgList(out, ee, false);
+				out.write(";\n");
+				out.write("		_isFiring = isFiring;\n");
+				out.write("	}\n");
 			}
 		}
 
-      private static void writeArgList(Writer out, ExecutableElement ee, boolean withTypes) throws IOException {
-         boolean needComma = false;
-         out.write("(");
-         for (VariableElement arg : ee.getParameters()) {
-            if (needComma)
-               out.write(",");
-            if (withTypes)
-               out.write(arg.asType().toString() + " ");
-            out.write(arg.getSimpleName().toString() + '_');
-            needComma = true;
-         }
-         out.write(")");
-      }
+		private static void writeArgList(Writer out, ExecutableElement ee, boolean withTypes) throws IOException {
+			boolean needComma = false;
+			out.write("(");
+			for (VariableElement arg : ee.getParameters()) {
+				if (needComma)
+					out.write(",");
+				if (withTypes)
+					out.write(arg.asType().toString() + " ");
+				out.write(arg.getSimpleName().toString() + '_');
+				needComma = true;
+			}
+			out.write(")");
+		}
 
-      public static String makeEmitterName(TypeElement te) {
-         String className = te.getSimpleName().toString();
-         Element pakkage = te.getEnclosingElement();
-         while (pakkage.getKind() != ElementKind.PACKAGE) {
-            className = pakkage.getSimpleName().toString() + '$' + className;
-            pakkage = pakkage.getEnclosingElement();
-         }
-         return ((PackageElement) pakkage).getQualifiedName() + "." + className + "$Emitter";
-      }
+		public static String makeEmitterName(TypeElement te) {
+			String className = te.getSimpleName().toString();
+			Element pakkage = te.getEnclosingElement();
+			while (pakkage.getKind() != ElementKind.PACKAGE) {
+				className = pakkage.getSimpleName().toString() + '$' + className;
+				pakkage = pakkage.getEnclosingElement();
+			}
+			return ((PackageElement) pakkage).getQualifiedName() + "." + className + "$Emitter";
+		}
 
-   }
+	}
 
-   protected Emitter() {
-      _listeners = new Object[8];
-   }
+	protected Emitter() {
+		_listeners = new Object[8];
+	}
 
-   /**
-    * Although this method is only a convenience method that casts this {@code Emitter} to the
-    * implementing interface, it expresses the idea behind Emitters: firing events to all listeners.
-    * @return the Emitter casted to the implementing interface
-    */
-   @SuppressWarnings("unchecked")
-   public T fire() {
-      return (T) this;
-   }
+	/**
+	 * Although this method is only a convenience method that casts this {@code Emitter} to the
+	 * implementing interface, it expresses the idea behind Emitters: firing events to all listeners.
+	 * @return the Emitter casted to the implementing interface
+	 */
+	@SuppressWarnings("unchecked")
+	public T fire() {
+		return (T) this;
+	}
 
-   /**
-    * Returns whether this {@code Emitter} is currently firing. This may be important to
-    * prevent unwanted recursion.
-    * @return {@code true} if this {@code Emitter} is already firing; {@code false} otherwise
-    */
-   public final boolean isFiring() {
-      return _isFiring;
-   }
+	/**
+	 * Returns whether this {@code Emitter} is currently firing. This may be important to
+	 * prevent unwanted recursion.
+	 * @return {@code true} if this {@code Emitter} is already firing; {@code false} otherwise
+	 */
+	public final boolean isFiring() {
+		return _isFiring;
+	}
 
-   /**
-    * Adds a listener to this {@code Emitter} with the listener itself as the key. It is
-    * implemented by calling {@link #add(Object, Object)}.
-    * @param listener the listener of type {@code T} to add
-    */
-   public synchronized void add(T listener) {
-   	add(listener, listener);
-   }
+	/**
+	 * Adds a listener to this {@code Emitter} with the listener itself as the key. It is
+	 * implemented by calling {@link #add(Object, Object)}.
+	 * @param listener the listener of type {@code T} to add
+	 */
+	public synchronized void add(T listener) {
+		add(listener, listener);
+	}
 
-   /**
-    * Registers a listener to this {@code Emitter} with the explicitly specified {@code key}.
-    * The listener is always added at the end of the list, so it gets called last when firing
-    * an event. Up to now the behaviour is undefined when registering several listeners with
-    * the same key.
-    * @param key  the identifying key of the listener
-    * @param listener  the listener to add
-    */
-   public synchronized void add(Object key, T listener) {
-      if (_end + 2 >= _listeners.length) {
-         Object[] newListeners = new Object[_listeners.length + _listeners.length / 2];
-         System.arraycopy(_listeners, 0, newListeners, 0, _listeners.length);
-         _listeners = newListeners;
-      }
-  		_listeners[_end] = listener;
-      _listeners[_end + 1] = key;
-      _end += 2;
-   }
+	/**
+	 * Registers a listener to this {@code Emitter} with the explicitly specified {@code key}.
+	 * The listener is always added at the end of the list, so it gets called last when firing
+	 * an event. Up to now the behaviour is undefined when registering several listeners with
+	 * the same key.
+	 * @param key  the identifying key of the listener
+	 * @param listener  the listener to add
+	 */
+	public synchronized void add(Object key, T listener) {
+		if (_end + 2 >= _listeners.length) {
+			Object[] newListeners = new Object[_listeners.length + _listeners.length / 2];
+			System.arraycopy(_listeners, 0, newListeners, 0, _listeners.length);
+			_listeners = newListeners;
+		}
+		_listeners[_end] = listener;
+		_listeners[_end + 1] = key;
+		_end += 2;
+	}
 
-   /**
-    * Removes a listener from the list. The listener will be identified by the key that have
-    * been passed while adding.
-    * @param key the key of the listener to remove
-    */
-   public synchronized void remove(Object key) {
-      for (int i = 0; i < _end; i += 2) {
-         if (_listeners[i + 1] == key) {
-            _end -= 2;
-            for (; i < _end; ++i)
-               _listeners[i] = _listeners[i + 2];
-            break;
-         }
-      }
-   }
+	/**
+	 * Removes a listener from the list. The listener will be identified by the key that have
+	 * been passed while adding.
+	 * @param key the key of the listener to remove
+	 */
+	public synchronized void remove(Object key) {
+		for (int i = 0; i < _end; i += 2) {
+			if (_listeners[i + 1] == key) {
+				_end -= 2;
+				for (; i < _end; ++i)
+					_listeners[i] = _listeners[i + 2];
+				break;
+			}
+		}
+	}
 
-   /**
-    * Creates an emitter object for the given interface. All methods of the interface need to be
-    * of type {@code void}.
-    * @param interfaze the interface to create an {@code Emitter} for
-    * @return the {@code Emitter}
-    */
+	/**
+	 * Creates an emitter object for the given interface. All methods of the interface need to be
+	 * of type {@code void}.
+	 * @param interfaze the interface to create an {@code Emitter} for
+	 * @return the {@code Emitter}
+	 */
 	public synchronized static <T> Emitter<T> makeEmitter(Class<?> interfaze) {
-      Class<? extends Emitter<?>> clazz = _classes.get(interfaze);
-      if (clazz == null) {
-      	clazz = checkPrecompiled(interfaze);
-      	if (clazz == null)
-      		throw new IllegalArgumentException("No emitter class found for: " + interfaze.getName());
-         _classes.put(interfaze, clazz);
-      }
-      try {
-         return newInstance(clazz);
-      } catch (Exception e) {
-         throw new RuntimeException(e);
-      }
-   }
+		Class<? extends Emitter<?>> clazz = _classes.get(interfaze);
+		if (clazz == null) {
+			clazz = checkPrecompiled(interfaze);
+			if (clazz == null)
+				throw new IllegalArgumentException("No emitter class found for: " + interfaze.getName());
+			_classes.put(interfaze, clazz);
+		}
+		try {
+			return newInstance(clazz);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@SuppressWarnings("unchecked")
 	private static <T> Class<Emitter<T>> checkPrecompiled(Class<T> interfaze) {
@@ -309,9 +309,9 @@ public class Emitter<T> {
 		return (Emitter<T>) clazz.newInstance();
 	}
 
-   private final static HashMap<Class<?>, Class<? extends Emitter<?>>> _classes = new HashMap<Class<?>, Class<? extends Emitter<?>>>();
+	private final static HashMap<Class<?>, Class<? extends Emitter<?>>> _classes = new HashMap<Class<?>, Class<? extends Emitter<?>>>();
 
-   protected Object[] _listeners;
-   protected int _end;
-   protected boolean _isFiring;
+	protected Object[] _listeners;
+	protected int _end;
+	protected boolean _isFiring;
 }
