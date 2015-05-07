@@ -21,7 +21,7 @@ apply plugin: 'maven'
 apply plugin: 'signing'
 
 sourceCompatibility = 1.8
-version = '0.7.0_beta'
+version = '0.7.0'
 group = 'de.kandid'
 def theName = 'kandidlib-emitter'
 def theDescription = 'Type safe model/listener pattern through class generation'
