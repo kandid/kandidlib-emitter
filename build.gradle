@@ -21,7 +21,7 @@ apply plugin: 'maven'
 apply plugin: 'signing'
 
 sourceCompatibility = 1.8
-version = '0.6.0'
+version = '0.7.0_beta'
 group = 'de.kandid'
 def theName = 'kandidlib-emitter'
 def theDescription = 'Type safe model/listener pattern through class generation'
@@ -30,6 +30,8 @@ repositories {
 	mavenLocal()
 	mavenCentral()
 }
+
+buildDir = hasProperty('build.dir.root') ? file(getProperty('build.dir.root') + '/' + project.name) : buildDir
 
 sourceSets {
 	main {java {srcDir 'src'} resources {srcDir 'src'}}
