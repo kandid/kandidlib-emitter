@@ -43,7 +43,7 @@ import javax.tools.Diagnostic;
 /**
  * Emitter is a class used to spread method calls to all of its registered listeners.
  * This concept is typically used in model/view patterns which are ubiquitos in the
- * Java Swing library.<p/>
+ * Java Swing library.<p>
  * Here is a short example: <pre>
 
 public class EmitterDemo {
@@ -75,20 +75,20 @@ public class EmitterDemo {
       emitter.fire().bescheid(" greetings from main");
    }
 }
- * </pre><p/>
+ * </pre><p>
  * Emitters can be constructed via the {@link #makeEmitter(Class)} method receiving an interface
  * that the returned {@code Emitter} implements. Calling one of those methods sends it to all
- * registered listeners.<p/>
+ * registered listeners.<p>
  *
  * There are two approaches to use Emitters:<ol>
  *
- * <li>Generate the Emitter code at runtime.<p/>
+ * <li>Generate the Emitter code at runtime.<p>
  * The advantage is that you can use Emitters within IDEs without the need to configure an
  * annotation processor or setup the source path to the generated sources. The drawback
  * is, you can't use Emitters in Applets since they normally forbid the generation of classes
  * at runtime</li>
  *
- * <li>Generate the Emitter code at compile time.<p/>
+ * <li>Generate the Emitter code at compile time.<p>
  * For this to work you have to register the annotation processor {@link JavacPlugin} and annotate
  * your listener interfaces with {@link Emitter.Listener}. Setting
  * up this correctly rewards you with a compile time check for the listener interfaces to have
@@ -113,8 +113,8 @@ public class Emitter<T> {
 	/**
 	 * The processor to handle {@link Emitter.Listener} annotations. It generates an
 	 * {@link Emitter} in the same package like the annotated listener interface resides.
-	 * It will be named {@code <Listener>.Emitter}, with all dots replaced with {@code $}.<p/>
-	 * <em>Note</em>: Despite its suggestive name this class is <em>not</em> an inner class!<p/>
+	 * It will be named {@code <Listener>.Emitter}, with all dots replaced with {@code $}.<p>
+	 * <em>Note</em>: Despite its suggestive name this class is <em>not</em> an inner class!<p>
 	 * If you place the
 	 * kandidlib-emitter jar in your classpath while compiling, it should work out of
 	 * the box.
@@ -276,6 +276,7 @@ public class Emitter<T> {
 	/**
 	 * Creates an emitter object for the given interface. All methods of the interface need to be
 	 * of type {@code void}.
+	 * @param <T> the listener class to build an Emitter for
 	 * @param interfaze the interface to create an {@code Emitter} for
 	 * @return the {@code Emitter}
 	 */
