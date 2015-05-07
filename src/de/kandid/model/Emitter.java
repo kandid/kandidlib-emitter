@@ -169,12 +169,13 @@ public class Emitter<T> {
 				writeArgList(out, ee, true);
 				out.write(" {\n");
 				out.write("		boolean isFiring = _isFiring;\n");
-				out.write("		_isFiring = true;\n");
-				out.write("		for (int i = 0; i < _end; i += 2)\n");
-				out.write("			((" + te.getQualifiedName() + ")_listeners[i])." + ee.getSimpleName());
+				out.write("		try {\n");
+				out.write("			_isFiring = true;\n");
+				out.write("			for (int i = 0; i < _end; i += 2)\n");
+				out.write("				((" + te.getQualifiedName() + ")_listeners[i])." + ee.getSimpleName());
 				writeArgList(out, ee, false);
 				out.write(";\n");
-				out.write("		_isFiring = isFiring;\n");
+				out.write("		} finally {_isFiring = isFiring;}\n");
 				out.write("	}\n");
 			}
 		}

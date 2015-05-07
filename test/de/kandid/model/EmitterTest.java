@@ -25,158 +25,176 @@ import junit.framework.TestCase;
  */
 public class EmitterTest extends TestCase {
 
-   @Emitter.Listener
-   public interface Listener {
-      public static class Class implements Listener {
-         @Override
+	@Emitter.Listener
+	public interface Listener {
+		public static class Class implements Listener {
+			@Override
 			public void increment() {
-            ++_count;
-         }
-         public int _count;
-      }
+				++_count;
+			}
+			public int _count;
+		}
 
-      public void increment();
-   }
+		public void increment();
+	}
 
-   @Emitter.Listener
-   public interface InheritedListener extends Listener {
-      public static class Class extends Listener.Class implements InheritedListener {
-         @Override
+	@Emitter.Listener
+	public interface InheritedListener extends Listener {
+		public static class Class extends Listener.Class implements InheritedListener {
+			@Override
 			public void incrementOther() {
-            ++_otherCount;
-         }
-         public int _otherCount;
-      }
+				++_otherCount;
+			}
+			public int _otherCount;
+		}
 
-      public void incrementOther();
-   }
+		public void incrementOther();
+	}
 
 
-   @Emitter.Listener
-   public interface EmptyListener {
-   }
+	@Emitter.Listener
+	public interface EmptyListener {
+	}
 
-   @Emitter.Listener
-   public interface ArgumentListener {
-      public static class Class implements ArgumentListener {
-         @Override
+	@Emitter.Listener
+	public interface ArgumentListener {
+		public static class Class implements ArgumentListener {
+			@Override
 			public void add(Integer a, Character b, int c, long d, double e) {
-            _a += a.intValue();
-            _b = b.charValue();
-            _c += c;
-            _d += d;
-            _e += e;
-         }
-         public int _a;
-         char _b;
-         int _c;
-         long _d;
-         double _e;
-      }
+				_a += a.intValue();
+				_b = b.charValue();
+				_c += c;
+				_d += d;
+				_e += e;
+			}
+			public int _a;
+			char _b;
+			int _c;
+			long _d;
+			double _e;
+		}
 
-      public void add(Integer a, Character b, int c, long d, double e);
-   }
+		public void add(Integer a, Character b, int c, long d, double e);
+	}
 
-   // @Emitter.Listener // Disable this for now since it gives a compile error (as it should!)
-   public interface ReturnListener {
-      public static class Class implements ReturnListener {
-         @Override
+	// @Emitter.Listener // Disable this for now since it gives a compile error (as it should!)
+	public interface ReturnListener {
+		public static class Class implements ReturnListener {
+			@Override
 			public int increment() {
-            return ++_count;
-         }
-         public int _count;
-      }
-      public int increment();
-   }
+				return ++_count;
+			}
+			public int _count;
+		}
+		public int increment();
+	}
 
-   public void testAnnotationProcessorUse() {
-   	Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
-   	assertEquals(Listener.class.getName() + "$Emitter", emitter.getClass().getName());
-   }
+	public void testAnnotationProcessorUse() {
+		Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
+		assertEquals(Listener.class.getName() + "$Emitter", emitter.getClass().getName());
+	}
 
-   public void testCreation() {
-      Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
-      Listener.Class listener = addListener(emitter);
-      emitter.fire().increment();
-      assertEquals(1, listener._count);
-   }
+	public void testCreation() {
+		Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
+		Listener.Class listener = addListener(emitter);
+		emitter.fire().increment();
+		assertEquals(1, listener._count);
+	}
 
-   public void testInheritedListener() {
-      Emitter<InheritedListener> emitter = Emitter.makeEmitter(InheritedListener.class);
-      InheritedListener.Class l = new InheritedListener.Class();
-      emitter.add(l);
-      emitter.fire().increment();
-      emitter.fire().incrementOther();
-      assertEquals(1, l._count);
-      assertEquals(1, l._otherCount);
-   }
+	public void testInheritedListener() {
+		Emitter<InheritedListener> emitter = Emitter.makeEmitter(InheritedListener.class);
+		InheritedListener.Class l = new InheritedListener.Class();
+		emitter.add(l);
+		emitter.fire().increment();
+		emitter.fire().incrementOther();
+		assertEquals(1, l._count);
+		assertEquals(1, l._otherCount);
+	}
 
-   public void testManyListeners() {
-      Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
-      Listener.Class[] listeners = new Listener.Class[50];
-      for (int i = 0; i < listeners.length; ++i)
-         listeners[i] = addListener(emitter);
-      emitter.fire().increment();
-      for (Listener.Class lc : listeners)
-         assertEquals(1, lc._count);
+	public void testManyListeners() {
+		Emitter<Listener> emitter = Emitter.makeEmitter(Listener.class);
+		Listener.Class[] listeners = new Listener.Class[50];
+		for (int i = 0; i < listeners.length; ++i)
+			listeners[i] = addListener(emitter);
+		emitter.fire().increment();
+		for (Listener.Class lc : listeners)
+			assertEquals(1, lc._count);
 
-      for (int i = 0; i < listeners.length; i += 2)
-         emitter.remove(listeners[i]);
-      emitter.fire().increment();
-      for (int i = 0; i < listeners.length; ++i)
-         assertEquals(1 + i % 2, listeners[i]._count);
-   }
+		for (int i = 0; i < listeners.length; i += 2)
+			emitter.remove(listeners[i]);
+		emitter.fire().increment();
+		for (int i = 0; i < listeners.length; ++i)
+			assertEquals(1 + i % 2, listeners[i]._count);
+	}
 
-   public void testReturnListeners() {
-      try {
-         Emitter.makeEmitter(ReturnListener.class);
-         fail("Need an exception here");
-      } catch (IllegalArgumentException e) {
-         //expected
-      }
-   }
+	public void testReturnListeners() {
+		try {
+			Emitter.makeEmitter(ReturnListener.class);
+			fail("Need an exception here");
+		} catch (IllegalArgumentException e) {
+			//expected
+		}
+	}
 
-   public void testArguments() {
-      Emitter<ArgumentListener> e = Emitter.makeEmitter(ArgumentListener.class);
-      ArgumentListener.Class listener = new ArgumentListener.Class();
-      e.add(listener);
-      e.fire().add(new Integer(3), new Character('a'), 2, 5, 1.5);
-      assertEquals(3, listener._a);
-      assertEquals('a', listener._b);
-      assertEquals(2, listener._c);
-      assertEquals(5, listener._d);
-      assertEquals(1.5, listener._e, 0);
-      e.fire().add(new Integer(4), new Character('b'), 3, 7, 1.25);
-      assertEquals(7, listener._a);
-      assertEquals('b', listener._b);
-      assertEquals(12, listener._d);
-      assertEquals(2.75, listener._e, 0);
-   }
+	public void testArguments() {
+		Emitter<ArgumentListener> e = Emitter.makeEmitter(ArgumentListener.class);
+		ArgumentListener.Class listener = new ArgumentListener.Class();
+		e.add(listener);
+		e.fire().add(new Integer(3), new Character('a'), 2, 5, 1.5);
+		assertEquals(3, listener._a);
+		assertEquals('a', listener._b);
+		assertEquals(2, listener._c);
+		assertEquals(5, listener._d);
+		assertEquals(1.5, listener._e, 0);
+		e.fire().add(new Integer(4), new Character('b'), 3, 7, 1.25);
+		assertEquals(7, listener._a);
+		assertEquals('b', listener._b);
+		assertEquals(12, listener._d);
+		assertEquals(2.75, listener._e, 0);
+	}
 
-   public void testFiringFlag() {
-      final Emitter<Listener> e = Emitter.makeEmitter(Listener.class);
-      assertFalse(e.isFiring());
-      e.add(new Listener() {
-         @Override
-         public void increment() {
-            assertTrue(e.isFiring());
-         }
-      });
-      e.fire().increment();
-      assertFalse(e.isFiring());
-   }
+	public void testFiringFlag() {
+		final Emitter<Listener> e = Emitter.makeEmitter(Listener.class);
+		assertFalse(e.isFiring());
+		e.add(new Listener() {
+			@Override
+			public void increment() {
+				assertTrue(e.isFiring());
+			}
+		});
+		e.fire().increment();
+		assertFalse(e.isFiring());
+	}
 
-   @Emitter.Listener
+	public void testResetOfIsFiringFlagAfterException() {
+		final Emitter<Listener> e = Emitter.makeEmitter(Listener.class);
+		assertFalse(e.isFiring());
+		e.add(new Listener() {
+			@Override
+			public void increment() {
+				assertTrue(e.isFiring());
+				throw new RuntimeException();
+			}
+		});
+		try {
+			e.fire().increment();
+			fail("No exception thrown");
+		} catch (RuntimeException expected) {
+		}
+		assertFalse(e.isFiring());
+	}
+
+	@Emitter.Listener
 	public interface ListenerWithArgumentNamedI {
 		void test(int i);
 	}
-   public void testIArgument() {
-   	Emitter.makeEmitter(ListenerWithArgumentNamedI.class);
-   }
+	public void testIArgument() {
+		Emitter.makeEmitter(ListenerWithArgumentNamedI.class);
+	}
 
-   private static Listener.Class addListener(Emitter<Listener> emitter) {
-      Listener.Class tl = new Listener.Class();
-      emitter.add(tl);
-      return tl;
-   }
+	private static Listener.Class addListener(Emitter<Listener> emitter) {
+		Listener.Class tl = new Listener.Class();
+		emitter.add(tl);
+		return tl;
+	}
 }
