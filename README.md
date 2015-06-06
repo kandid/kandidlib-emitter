@@ -7,7 +7,9 @@ The problem
 ---------
 Need to implement a model interface in Java/Swing because none of the default classes fit? Tired to implement all those methods to register listeners and loops to send the messages to all listeners?
 
-If so, kandidlib-emitter can help you. This small library generates classes performing these tasks. At your preference these classes will be either generated at compile time via an annotation processor or at runtime with a little help from the [asm](http://asm.ow2.org/) lib or both.
+If so, kandidlib-emitter can help you. This small library generates classes performing these tasks. The necessary classes will be generated at compile time via an annotation processor. 
+
+Earlier versions of this library had the ability to dynamically generate the needed classes at runtime. Support for this feature has been abandoned since 0.7.0 for several reasons (not allowed for applets, not usable in Android, doubling of parts of the code base). 
 
 
 The solution
@@ -20,6 +22,7 @@ An example shows the principle:
 public class EmitterDemo {
 
    // The interface all listeners must implement
+   @Emitter.Listener
    public interface Listener {
       public void bescheid(String text);
    }
@@ -42,41 +45,25 @@ public class EmitterDemo {
 }
 ```
 
-How to use it
-----------
-As mentioned before kandidlib-emitter may be used in two ways, either as an annotation processor in order to generate the necessary classes at compile time or do dynamic generation at runtime.
 
-In both cases you can use the `makeEmitter(Class)` method to instantiate an Emitter. 
+Building the jar
+---------------
 
-
-### Using runtime generation
-* add kandidlib-emitter to your classpath
-* add asm-4.2 to your classpath
-* instantiate an Emitter with Emitter.makeEmitter(Listener.class)
-This approach is simpler to set up but you must take care if you plan to use an Emitter in an Applet since under normal circumstances this environment prohibits code generation at runtime. Another drawback might be the missing checks for non void methods.
-
-### Using as an annotation processor
-* build the annotation processor jar (see below)
-* register the jar as an annotation processor
-* mark your interfaces with `@de.kandid.model.Emitter.Listener`
-* instantiate them with either Emitter.makeEmitter(Listener.class)
-
--or-
-
-* use the generated class directly
-
-Following this approach requires you to build the kandidlib-emitter.jar and register it as an annotation processor. Usually it should be enough to simply add the jar to the classpath of your compile step.
-
-Doing so enables you to mark interfaces with the annotation  and the processor generates the Emitter class. The resulting class resides in the same package as the interface and has the same name appended with $Emitter. If the implemented interface is a nested one, the dots are replaced with '$'. Taking the previous example the generated emitter would be named EmitterDemo$Listener$Emitter.
-
-
-Building the kandidlib-emitter.jar
----------------------------
-This library uses the [Gradle](http://gradle.org)-1.10 build system. Since I refuse to add the wrapper to the source code, you need to have it installed. Then
+This library uses the [Gradle](http://gradle.org) build system. Since I refuse to add the wrapper to the source code, you need to have it installed. Then
 ```sh
 gradle jar
 ```
-produces the jar containing a manifest which identifies it as an annotation processor. This jar is also the one that must be included in distributions of your application since it also contains the runtime classes.
+produces the jar containing a manifest which identifies it as an annotation processor and places it in the `libs` subdirectory. This jar is also the one that _must_ be included in distributions of your application since it also contains the runtime classes.
+
+Using the annotation processor
+-----------
+
+In most cases it suffices to add the jar to the classpath. For some IDEs it may be necessary to explicitly activate annotation processing.
+
+Once this is done, marking an interface with `@de.kandid.model.Emitter.Listener` makes the emitter available through `Emitter.makeEmitter(Listener.class)` or the generated class may be used directly. The resulting class resides in the same package as the interface and has the same name appended by $Emitter. If the implemented interface is a nested one, the dots are replaced with '$'. Taking the previous example the generated emitter would be named EmitterDemo$Listener$Emitter.
+
+More example uses of this library can be found in the [JUnit tests](test/de/kandid/model/EmitterTest.java).
+
 
 Improving kandidlib-emitter
 -------------
